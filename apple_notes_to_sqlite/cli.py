@@ -1,4 +1,5 @@
 import click
+import json
 import secrets
 import sqlite_utils
 import subprocess
@@ -20,38 +21,54 @@ tell application "Notes"
       set noteCreated to (noteCreatedDate as «class isot» as string)
       set noteUpdatedDate to the modification date of eachNote
       set noteUpdated to (noteUpdatedDate as «class isot» as string)
-      log "{split}{split}" & "\n"
       log "{split}-id: " & noteId & "\n"
       log "{split}-created: " & noteCreated & "\n"
       log "{split}-updated: " & noteUpdated & "\n"
       log "{split}-title: " & noteTitle & "\n\n"
       log noteBody & "\n"
+      log "{split}{split}" & "\n"
    end repeat
 end tell
-"""
+""".strip()
 
 
 @click.command()
 @click.version_option()
-@click.argument("db_path")
+@click.argument(
+    "db_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
+    required=False,
+)
 @click.option("--stop-after", type=int, help="Stop after this many notes")
-def cli(db_path, stop_after):
+@click.option("--dump", is_flag=True, help="Output notes to standard output")
+def cli(db_path, stop_after, dump):
     "Export Apple Notes to SQLite"
-    db = sqlite_utils.Database(db_path)
+    if not db_path and not dump:
+        raise click.UsageError(
+            "Please specify a path to a database file, or use --dump to see the output",
+        )
     expected_count = stop_after
     if not expected_count:
         expected_count = count_notes()
     # Use click progressbar
     i = 0
-    with click.progressbar(
-        length=expected_count, label="Exporting notes", show_eta=True, show_pos=True
-    ) as bar:
+    if dump:
         for note in extract_notes():
-            db["notes"].insert(note, pk="id", replace=True)
-            bar.update(1)
+            click.echo(json.dumps(note))
             i += 1
             if stop_after and i >= stop_after:
                 break
+    else:
+        db = sqlite_utils.Database(db_path)
+        with click.progressbar(
+            length=expected_count, label="Exporting notes", show_eta=True, show_pos=True
+        ) as bar:
+            for note in extract_notes():
+                db["notes"].insert(note, pk="id", replace=True)
+                bar.update(1)
+                i += 1
+                if stop_after and i >= stop_after:
+                    break
 
 
 def count_notes():
@@ -80,10 +97,11 @@ def extract_notes():
         line = line.decode("mac_roman").strip()
         if line == f"{split}{split}":
             if note.get("id"):
-                note["body"] = "\n".join(body)
+                note["body"] = "\n".join(body).strip()
                 yield note
             note = {}
             body = []
+            continue
         found_key = False
         for key in ("id", "title", "created", "updated"):
             if line.startswith(f"{split}-{key}: "):
