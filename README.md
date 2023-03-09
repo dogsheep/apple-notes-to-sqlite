@@ -1,9 +1,9 @@
 # apple-notes-to-sqlite
 
 [![PyPI](https://img.shields.io/pypi/v/apple-notes-to-sqlite.svg)](https://pypi.org/project/apple-notes-to-sqlite/)
-[![Changelog](https://img.shields.io/github/v/release/simonw/apple-notes-to-sqlite?include_prereleases&label=changelog)](https://github.com/simonw/apple-notes-to-sqlite/releases)
-[![Tests](https://github.com/simonw/apple-notes-to-sqlite/workflows/Test/badge.svg)](https://github.com/simonw/apple-notes-to-sqlite/actions?query=workflow%3ATest)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/simonw/apple-notes-to-sqlite/blob/master/LICENSE)
+[![Changelog](https://img.shields.io/github/v/release/dogsheep/apple-notes-to-sqlite?include_prereleases&label=changelog)](https://github.com/dogsheep/apple-notes-to-sqlite/releases)
+[![Tests](https://github.com/dogsheep/apple-notes-to-sqlite/workflows/Test/badge.svg)](https://github.com/dogsheep/apple-notes-to-sqlite/actions?query=workflow%3ATest)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/dogsheep/apple-notes-to-sqlite/blob/master/LICENSE)
 
 Export Apple Notes to SQLite
 
