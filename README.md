@@ -77,6 +77,35 @@ CREATE UNIQUE INDEX [idx_folders_long_id]
 ```
 <!-- [[[end]]] -->
 
+### apple-notes-to-sqlite --help
+
+<!-- [[[cog
+import cog
+from apple_notes_to_sqlite import cli
+from click.testing import CliRunner
+runner = CliRunner()
+result = runner.invoke(cli.cli, ["--help"])
+help = result.output.replace("Usage: cli", "Usage: apple-notes-to-sqlite")
+cog.out(
+    "```\n{}\n```".format(help)
+)
+]]] -->
+```
+Usage: apple-notes-to-sqlite [OPTIONS] [DB_PATH]
+
+  Export Apple Notes to SQLite
+
+Options:
+  --version             Show the version and exit.
+  --stop-after INTEGER  Stop after this many notes
+  --dump                Output notes to standard output
+  --schema              Create database schema and exit
+  --help                Show this message and exit.
+
+```
+<!-- [[[end]]] -->
+
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
