@@ -33,6 +33,10 @@ You can stop it after a specified number of notes using `--stop-after`:
 
     apple-notes-to-sqlite notes.db --stop-after 10
 
+To dump the notes to standard output out as newline-delimited JSON, rather than saving them to a database, use the `--dump` option:
+
+    apple-notes-to-sqlite --dump
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
