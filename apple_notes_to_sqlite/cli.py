@@ -66,7 +66,16 @@ end tell
 @click.option("--dump", is_flag=True, help="Output notes to standard output")
 @click.option("--schema", is_flag=True, help="Create database schema and exit")
 def cli(db_path, stop_after, dump, schema):
-    "Export Apple Notes to SQLite"
+    """
+    Export Apple Notes to SQLite
+
+    Example usage:
+
+        apple-notes-to-sqlite notes.db
+
+    This will populate notes.db with 'notes' and 'folders' tables containing
+    all of your notes.
+    """
     if not db_path and not dump:
         raise click.UsageError(
             "Please specify a path to a database file, or use --dump to see the output",

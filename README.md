@@ -95,6 +95,13 @@ Usage: apple-notes-to-sqlite [OPTIONS] [DB_PATH]
 
   Export Apple Notes to SQLite
 
+  Example usage:
+
+      apple-notes-to-sqlite notes.db
+
+  This will populate notes.db with 'notes' and 'folders' tables containing all
+  of your notes.
+
 Options:
   --version             Show the version and exit.
   --stop-after INTEGER  Stop after this many notes
