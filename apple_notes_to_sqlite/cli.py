@@ -64,7 +64,8 @@ end tell
 )
 @click.option("--stop-after", type=int, help="Stop after this many notes")
 @click.option("--dump", is_flag=True, help="Output notes to standard output")
-def cli(db_path, stop_after, dump):
+@click.option("--schema", is_flag=True, help="Create database schema and exit")
+def cli(db_path, stop_after, dump, schema):
     "Export Apple Notes to SQLite"
     if not db_path and not dump:
         raise click.UsageError(
@@ -83,7 +84,7 @@ def cli(db_path, stop_after, dump):
                 break
     else:
         db = sqlite_utils.Database(db_path)
-        # Store folders
+        # Create schema
         folder_long_ids_to_id = {}
         if not db["folders"].exists():
             db["folders"].create(
@@ -97,6 +98,22 @@ def cli(db_path, stop_after, dump):
             )
             db["folders"].create_index(["long_id"], unique=True)
             db["folders"].add_foreign_key("parent", "folders", "id")
+        if not db["notes"].exists():
+            db["notes"].create(
+                {
+                    "id": str,
+                    "created": str,
+                    "updated": str,
+                    "folder": int,
+                    "title": str,
+                    "body": str,
+                },
+                pk="id",
+            )
+            db["notes"].add_foreign_key("folder", "folders", "id")
+        if schema:
+            # Our work is done
+            return
         for folder in topological_sort(extract_folders()):
             folder["parent"] = folder_long_ids_to_id.get(folder["parent"])
             id = db["folders"].insert(folder, pk="id", replace=True).last_pk
@@ -110,10 +127,8 @@ def cli(db_path, stop_after, dump):
                 note["folder"] = folder_long_ids_to_id.get(note["folder"])
                 db["notes"].insert(
                     note,
-                    pk="id",
                     replace=True,
                     alter=True,
-                    foreign_keys=(("folder", "folders", "id"),),
                 )
                 bar.update(1)
                 i += 1

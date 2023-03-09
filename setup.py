@@ -32,6 +32,6 @@ setup(
         apple-notes-to-sqlite=apple_notes_to_sqlite.cli:cli
     """,
     install_requires=["click", "sqlite-utils"],
-    extras_require={"test": ["pytest", "pytest-subprocess"]},
+    extras_require={"test": ["pytest", "pytest-subprocess", "cogapp"]},
     python_requires=">=3.7",
 )
