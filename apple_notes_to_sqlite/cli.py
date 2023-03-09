@@ -71,9 +71,6 @@ def cli(db_path, stop_after, dump, schema):
         raise click.UsageError(
             "Please specify a path to a database file, or use --dump to see the output",
         )
-    expected_count = stop_after
-    if not expected_count:
-        expected_count = count_notes()
     # Use click progressbar
     i = 0
     if dump:
@@ -114,10 +111,15 @@ def cli(db_path, stop_after, dump, schema):
         if schema:
             # Our work is done
             return
+
         for folder in topological_sort(extract_folders()):
             folder["parent"] = folder_long_ids_to_id.get(folder["parent"])
             id = db["folders"].insert(folder, pk="id", replace=True).last_pk
             folder_long_ids_to_id[folder["long_id"]] = id
+
+        expected_count = stop_after
+        if not expected_count:
+            expected_count = count_notes()
 
         with click.progressbar(
             length=expected_count, label="Exporting notes", show_eta=True, show_pos=True
