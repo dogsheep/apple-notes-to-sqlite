@@ -11,6 +11,26 @@ end tell
 log noteCount
 """
 
+FOLDERS_SCRIPT = """
+tell application "Notes"
+    set allFolders to folders
+    repeat with aFolder in allFolders
+        set folderId to id of aFolder
+        set folderName to name of aFolder
+        set folderContainer to container of aFolder
+        if class of folderContainer is folder then
+            set folderContainerId to id of folderContainer
+        else
+            set folderContainerId to ""
+        end if
+        log "long_id: " & folderId
+        log "name: " & folderName
+        log "parent: " & folderContainerId
+        log "==="
+    end repeat
+end tell
+"""
+
 EXTRACT_SCRIPT = """
 tell application "Notes"
    repeat with eachNote in every note
@@ -21,9 +41,12 @@ tell application "Notes"
       set noteCreated to (noteCreatedDate as «class isot» as string)
       set noteUpdatedDate to the modification date of eachNote
       set noteUpdated to (noteUpdatedDate as «class isot» as string)
+      set noteContainer to container of eachNote
+      set noteFolderId to the id of noteContainer
       log "{split}-id: " & noteId & "\n"
       log "{split}-created: " & noteCreated & "\n"
       log "{split}-updated: " & noteUpdated & "\n"
+      log "{split}-folder: " & noteFolderId & "\n"
       log "{split}-title: " & noteTitle & "\n\n"
       log noteBody & "\n"
       log "{split}{split}" & "\n"
@@ -60,11 +83,38 @@ def cli(db_path, stop_after, dump):
                 break
     else:
         db = sqlite_utils.Database(db_path)
+        # Store folders
+        folder_long_ids_to_id = {}
+        if not db["folders"].exists():
+            db["folders"].create(
+                {
+                    "id": int,
+                    "long_id": str,
+                    "name": str,
+                    "parent": int,
+                },
+                pk="id",
+            )
+            db["folders"].create_index(["long_id"], unique=True)
+            db["folders"].add_foreign_key("parent", "folders", "id")
+        for folder in topological_sort(extract_folders()):
+            folder["parent"] = folder_long_ids_to_id.get(folder["parent"])
+            id = db["folders"].insert(folder, pk="id", replace=True).last_pk
+            folder_long_ids_to_id[folder["long_id"]] = id
+
         with click.progressbar(
             length=expected_count, label="Exporting notes", show_eta=True, show_pos=True
         ) as bar:
             for note in extract_notes():
-                db["notes"].insert(note, pk="id", replace=True)
+                # Fix the folder
+                note["folder"] = folder_long_ids_to_id.get(note["folder"])
+                db["notes"].insert(
+                    note,
+                    pk="id",
+                    replace=True,
+                    alter=True,
+                    foreign_keys=(("folder", "folders", "id"),),
+                )
                 bar.update(1)
                 i += 1
                 if stop_after and i >= stop_after:
@@ -72,7 +122,6 @@ def cli(db_path, stop_after, dump):
 
 
 def count_notes():
-    # Pass COUNT_SCRIPT to osascript and return standard err
     return int(
         subprocess.check_output(
             ["osascript", "-e", COUNT_SCRIPT], stderr=subprocess.STDOUT
@@ -84,7 +133,6 @@ def count_notes():
 
 def extract_notes():
     split = secrets.token_hex(8)
-    # Stream stderr output from osascript
     process = subprocess.Popen(
         ["osascript", "-e", EXTRACT_SCRIPT.format(split=split)],
         stdout=subprocess.PIPE,
@@ -103,10 +151,50 @@ def extract_notes():
             body = []
             continue
         found_key = False
-        for key in ("id", "title", "created", "updated"):
+        for key in ("id", "title", "folder", "created", "updated"):
             if line.startswith(f"{split}-{key}: "):
                 note[key] = line[len(f"{split}-{key}: ") :]
                 found_key = True
                 continue
         if not found_key:
             body.append(line)
+
+
+def extract_folders():
+    process = subprocess.Popen(
+        ["osascript", "-e", FOLDERS_SCRIPT],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    folders = []
+    folder = {}
+    for line in process.stdout:
+        for key in ("long_id", "name", "parent"):
+            if line.startswith(f"{key}: ".encode("utf8")):
+                folder[key] = line[len(f"{key}: ") :].decode("macroman").strip() or None
+                continue
+        if line == b"===\n":
+            folders.append(folder)
+            folder = {}
+    return folders
+
+
+def topological_sort(nodes):
+    children = {}
+    for node in nodes:
+        parent_id = node["parent"]
+        if parent_id is not None:
+            children.setdefault(parent_id, []).append(node)
+
+    def traverse(node, result):
+        result.append(node)
+        if node["long_id"] in children:
+            for child in children[node["long_id"]]:
+                traverse(child, result)
+
+    sorted_data = []
+    for node in nodes:
+        if node["parent"] is None:
+            traverse(node, sorted_data)
+
+    return sorted_data
