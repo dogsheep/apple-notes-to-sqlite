@@ -168,7 +168,7 @@ def extract_notes():
     note = {}
     body = []
     for line in process.stdout:
-        line = line.decode("mac_roman").strip()
+        line = line.decode("utf8").strip()
         if line == f"{split}{split}":
             if note.get("id"):
                 note["body"] = "\n".join(body).strip()
@@ -197,7 +197,7 @@ def extract_folders():
     for line in process.stdout:
         for key in ("long_id", "name", "parent"):
             if line.startswith(f"{key}: ".encode("utf8")):
-                folder[key] = line[len(f"{key}: ") :].decode("macroman").strip() or None
+                folder[key] = line[len(f"{key}: ") :].decode("utf8").strip() or None
                 continue
         if line == b"===\n":
             folders.append(folder)
